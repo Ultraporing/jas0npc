@@ -5,8 +5,8 @@ from t0mm0.common.addon import Addon
 net = Net()
 
 ADDON = xbmcaddon.Addon(id='plugin.video.AWEsomeDL')
-announce = 'http://jas0npc-xbmc-repository.googlecode.com/svn/trunk/announce/AWE_NOTICE.xml'
-VERSION = "2.0.3"
+announce = 'http://github.com/jas0npc/jas0npc/raw/master/announce/AWE_NOTICE.xml'
+VERSION = "2.0.4"
 PATH = "AWEsomeDL"            
 UATRACK="UA-38450032-1"
 

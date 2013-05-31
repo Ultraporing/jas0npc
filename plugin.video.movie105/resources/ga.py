@@ -5,7 +5,7 @@ import xbmcgui,xbmcaddon,xbmc,xbmcplugin,time,datetime,os,re
 
 ADDON = xbmcaddon.Addon(id='plugin.video.movie105')
 
-VERSION = "0.5"
+VERSION = "0.6"
 PATH = "movie105"            
 UATRACK="UA-38450032-1"
 

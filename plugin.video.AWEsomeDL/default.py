@@ -18,14 +18,14 @@ grab = metahandlers.MetaData()
 linkback = None
 net = Net()
 art = xbmc.translatePath(os.path.join(local.getAddonInfo('path'), 'resources', 'art'))
-announce = 'http://jas0npc-xbmc-repository.googlecode.com/svn/trunk/announce/AWE_NOTICE.xml'
+announce = 'http://github.com/jas0npc/jas0npc/raw/master/announce/AWE_NOTICE.xml'
 cookie_path = os.path.join(datapath, 'cookies')                 
 cookie_jar = os.path.join(cookie_path, "cookiejar.lwp")
 if os.path.exists(cookie_path) == False:                        
     os.makedirs(cookie_path)
     
 BASE_URL = 'http://www.awesomedl.com/'#
-print 'AWEsomeDL v2.0.3'
+print 'AWEsomeDL v2.0.4'
 GA("BETA","V2")
 
 def MAIN():#addDir(mode,mode2,url,types,linkback,meta_name,name,iconimage)

@@ -2,6 +2,8 @@ import xbmcgui,xbmcaddon,xbmc,xbmcplugin,time,datetime,os,re
 
 ADDON = xbmcaddon.Addon(id='plugin.video.moviekingdom')
 
+announce = 'http://github.com/jas0npc/jas0npc/raw/master/announce/MK_NOTICE.xml'        
+
 VERSION = "1.0"
 PATH = "moviekingdom"            
 UATRACK="UA-38450032-1"
