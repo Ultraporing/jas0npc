@@ -1,0 +1,14 @@
+<settings>
+	<setting id="firstrun" type="bool" label="DO NOT TOUCH" default="false" visible="false"/>
+    <setting id="ga_warn" type="text" label="GA_WARN" default="false" visible="false"/>
+	<setting id="ga_time" type="text" label="GA Called" default="2000-01-01 00:00:00" visible="false"/>
+    <setting id="ga_visitor" type="text" label="GA visitor" default="" visible="false"/>
+	<setting id="pop_time" type="text" label="For POP UP" default="2000-01-01 00:00:00" visible="false"/>
+		
+<category label="Downloads">
+    <setting id="download-folder" type="folder" label="Download Folder" default=""/>
+	<setting id="delete-incomplete-downloads" type="bool" label="Delete Incomplete Downloads" default="true"/>
+	<setting id="download-in-background" type="bool" label="Download in Background" default="true" />
+    <setting id="notify-percent" enable="eq(-1,true)" label="Notify Per" type="enum" values="2%|5%|10%|20%|25%|50%|100%" default="2" />
+</category>
+</settings>

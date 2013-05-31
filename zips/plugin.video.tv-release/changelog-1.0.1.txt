@@ -1,0 +1,15 @@
+[B]Version 0.0.1alpha[/B]
+Initial release, more features to be added.
+[B]Version 0.0.2alpha[/B]
+Added urlresolver settings.
+[B]Version 0.0.5alpha[/B]
+Rewrote the code, trying to optimise..
+[B]Version 0.0.6alpha[/B]
+Little bits changed getting ready for some surprises :)
+[B]Version 1.0.0[/B]
+Big Update, We have images:) Big thanks to Eldorado @XBMCHUB.COM
+We are out of beta, this is an official release
+too many changes to mention.
+[B]Version 1.0.1[/B]
+Added tv-foreign and movies-foreign,
+fixed some small stuff

@@ -1,0 +1,4 @@
+[B]Version 0.0.1[/B]
+Rewrote from ground up, 1st release
+[B]Version 0.0.5[B]
+Removed metadata for the time being, as it slowed everything down too much :(

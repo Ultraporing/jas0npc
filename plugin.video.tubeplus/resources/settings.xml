@@ -1,0 +1,10 @@
+<settings>
+<category label="General Settings">
+		<setting id="firstrun" type="bool" label="Warning about Real-Debrid priority" default="true" />
+        <setting id="hoster_warning" type="bool" label="Reminder about REAL-DEBRID priority" default="true" />
+        <setting id="tvwarn" type="bool" label="Warning about tv scraping" default="true" />
+        <setting id="usemeta" type="bool" label="Use MetaData" default="true" />
+		<setting id="ga_time" type="text" label="GA Called" default="2000-01-01 00:00:00" visible="false"/>
+        <setting id="ga_visitor" type="text" label="GA visitor" default="" visible="false"/>
+</category>
+</settings>
