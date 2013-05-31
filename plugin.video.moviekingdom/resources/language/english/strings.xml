@@ -1,0 +1,25 @@
+<strings>
+    <string id="30101">GA Called</string>
+    <string id="30102">GA visitor</string>
+    <string id="30103">Metadata ON/OFF</string>
+    <string id="30104">Enable list sorting alphabetically</string>
+    
+    <!--Auto-View-->
+    <string id="30105">Enable Automatic View</string>
+    <string id="30106">MAIN DIRECTORY</string>
+    <string id="30107">MOVIE DIRECTORY</string>
+    <string id="30108">HOSTER VIEWS</string>
+    <string id="30109">SEASONS VIEW</string>
+    
+    <!--Downloads-->
+    <string id="30300">Downloads folder:</string>
+    <string id="30301">Create directory structures in downloads folder</string>
+    <string id="30302">Delete incomplete downloads</string>
+    <string id="30303">Download in background</string>
+    <string id="30304">Notify about progress every</string>
+    
+    <!--Account details-->
+    <string id="30307">Enable Site Log In</string>
+    <string id="30305">Movie-Kingdom Username</string>
+    <string id="30306">Movie-Kingdom Password</string>
+</strings>    
