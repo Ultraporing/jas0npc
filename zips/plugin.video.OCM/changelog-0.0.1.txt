@@ -1,2 +1,0 @@
-[B]Version 0.0.1[/B]
-Rewrote from ground up, 1st release

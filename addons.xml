@@ -1,49 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addons>
-<addon id="plugin.video.AWEsomeDL"
-       name="AWEsomeDL @[COLOR blue]XBMCHUB.COM[/COLOR]"
-       version="2.0.3"
-       provider-name="Jas0npc">
-  <requires>
-        <import addon="xbmc.python" version="2.0"/>
-        <import addon="script.module.urlresolver" version="1.0.3"/>
-        <import addon="script.module.t0mm0.common" version="1.1.0"/>
-		<import addon="script.module.metahandler" version="1.0.1"/>
-		<import addon="script.module.beautifulsoup"/>
-  </requires>
-  <extension point="xbmc.python.pluginsource"
-            library="default.py">
-        <provides>video</provides>
-  </extension>
-  <extension point="xbmc.addon.metadata">
-    <summary lang="en">AWEsomeDL</summary>
-    <description lang="en">AWEsomeDL.....Official Support....XBMCHUB.COM. BIG THANKS TO ALL WHOS HELPED, Vin, Mikey1234,Eldorado, UmOuch,MScreations, My thanks go to [B]ANILKUJ[/B] for creating this addon.</description>
-    <platform>all</platform>
-  </extension>
-</addon>
-
-<addon id="plugin.video.movie105"
-       name="Movie105 @[COLOR blue]XBMCHUB.COM[/COLOR]"
-       version="0.5"
-       provider-name="Jas0npc">
-  <requires>
-        <import addon="xbmc.python" version="2.0"/>
-        <import addon="script.module.urlresolver" version="1.0.3"/>
-        <import addon="script.module.t0mm0.common" version="1.1.0"/>
-		<import addon="script.module.metahandler" version="1.0.1"/>
-		<import addon="script.module.beautifulsoup"/>
-  </requires>
-  <extension point="xbmc.python.pluginsource"
-            library="default.py">
-        <provides>video</provides>
-  </extension>
-  <extension point="xbmc.addon.metadata">
-    <summary lang="en">Movie105</summary>
-    <description lang="en">Movie105, Hollywood, Bollywood, Hindi Dubbed movies and Tv serials from Movie105.com</description>
-    <platform>all</platform>
-  </extension>
-</addon>
-
 <addon id="plugin.video.moviekingdom"
        name="moviekingdom @[COLOR blue]XBMCHUB.COM[/COLOR]"
        version="1.0"
@@ -62,70 +18,6 @@
   <extension point="xbmc.addon.metadata">
     <summary lang="en">Moviekingdom</summary>
     <description lang="en">Moviekingdom.....Official Support....XBMCHUB.COM. BIG THANKS TO ALL WHOS HELPED, Vin, Mikey1234,Eldorado, UmOuch,MScreations All others I have forgotten, Your Name will be in the release version.</description>
-    <platform>all</platform>
-  </extension>
-</addon>
-
-<addon id="plugin.video.OCM"
-	   version="0.1.3"
-	   name="OneClickMoviez V2 [COLOR blue]@XBMCHUB.COM[/COLOR]"
-	   provider-name="Recoded by Jas0npc  (originator: [B]ANILKUJ[/B] )">
-    <requires>
-        <import addon="xbmc.python" version="1.0"/>
-        <import addon="script.module.t0mm0.common" version="0.0.1"/>
-        <import addon="script.module.urlresolver" version="0.0.1"/>
-        <import addon="script.module.metahandler" version="1.0.0"/>
-    </requires>
-    <extension point="xbmc.python.pluginsource" library="default.py">
-        <provides>video</provides>
-    </extension>
-    <extension point="xbmc.addon.metadata">
-        <summary>Browse oneclickmoviez</summary>
-        <description>Play a wide selection of movies from oneclickmoviez, I have recoded this to run on xbmc Frodo. BIG thanks to [B]Panda Monium[/B] and the Community at [B]XBMCHUB.com[\B], For full support come to www.xbmchub.com</description>
-        <platform>all</platform>
-    </extension>
-</addon>
-
-<addon id="plugin.video.tubeplus"
-       name="TubePlus @[COLOR blue]XBMCHUB.COM[/COLOR]"
-       version="1.0.3"
-       provider-name="Jas0npc  (originator: ANILKUJ )">
-  <requires>
-        <import addon="xbmc.python" version="2.0"/>
-        <import addon="script.module.urlresolver" version="1.0.3"/>
-        <import addon="script.module.t0mm0.common" version="1.1.0"/>
-		<import addon="script.module.metahandler" version="1.0.1"/>
-		<import addon="script.module.beautifulsoup"/>
-  </requires>
-  <extension point="xbmc.python.pluginsource"
-            library="default.py">
-        <provides>video</provides>
-  </extension>
-  <extension point="xbmc.addon.metadata">
-    <summary lang="en">TubePlus</summary>
-    <description lang="en">TubePlus.....Official Support....XBMCHUB.COM. BIG THANKS TO ALL WHOS HELPED, Vin, Mikey1234,Eldorado, UmOuch,MScreations, My thanks go to [B]ANILKUJ[/B] for creating this addon.</description>
-    <platform>all</platform>
-  </extension>
-</addon>
-
-<addon id="plugin.video.tv-release"
-       name="Tv-release @[COLOR blue]XBMCHUB.COM[/COLOR]"
-       version="1.1.3"
-       provider-name="Jas0npc">
-  <requires>
-        <import addon="xbmc.python" version="2.0"/>
-        <import addon="script.module.urlresolver" version="1.0.3"/>
-        <import addon="script.module.t0mm0.common" version="1.1.0"/>
-		<import addon="script.module.metahandler" version="1.0.1"/>
-		<import addon="script.module.beautifulsoup"/>
-  </requires>
-  <extension point="xbmc.python.pluginsource"
-            library="default.py">
-        <provides>video</provides>
-  </extension>
-  <extension point="xbmc.addon.metadata">
-    <summary lang="en">Tv-release OFFICIAL]</summary>
-    <description lang="en">Tv-release.....Official Support....XBMCHUB.COM. BIG THANKS TO ALL WHOS HELPED, Vin, Mikey1234,Eldorado, UmOuch,MScreations All others I have forgotten, Your Name will be in the release version.</description>
     <platform>all</platform>
   </extension>
 </addon>
