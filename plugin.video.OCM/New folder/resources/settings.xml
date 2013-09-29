@@ -1,0 +1,13 @@
+<settings>
+<category label="OCM v2 Settings">
+	<setting id="ga_time" type="text" label="GA Called" default="2000-01-01 00:00:00" visible="false"/>
+    <setting id="visitor_ga" type="text" label="GA visitor" default="" visible="false"/>
+	<setting id="pop_time" type="text" label="For POP UP" default="2000-01-01 00:00:00" visible="false"/>
+	<setting id="use_meta" type="bool" label="Use Metadata" default="true"/>
+</category>
+<category label="Auto-View">
+	<setting id="auto_view" type="bool" label="Enable AutoView" default="true"/>
+	<setting id="movie-view" type="number" label="Movie-view" default="503"/>
+	<setting id="default-view" type="number" label="Default-view" default="50"/>
+</category>
+</settings>

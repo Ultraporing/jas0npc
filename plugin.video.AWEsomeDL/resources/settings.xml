@@ -1,0 +1,16 @@
+<settings>
+<category label="AWEsomeDL v2 Settings">
+	<setting id="ga_time" type="text" label="GA Called" default="2000-01-01 00:00:00" visible="false"/>
+    <setting id="ga_visitor" type="text" label="GA visitor" default="" visible="false"/>
+    <setting id="enable_meta" type="bool" label="Metadata ON/OFF" values="True|False"/>
+    <setting id="list_alphabetically" type="bool" label="Enable list sorting alphabetically" default="true"/>
+</category>
+<category label="Auto-View">
+	<setting id="auto-view" type="bool" label="Enable Automatic View" default="true"/>
+	<setting id="default" type="number" label="MAIN DIRECTORY" default="50" enable="!eq(-1,false)"/>
+	<setting id="anything" type="number" label="MOVIE DIRECTORY" default="503" enable="!eq(-1,false)"/>
+    <setting id="hoster" type="number" label="HOSTER VIEWS" default="508" enable="!eq(-1,false)"/>
+
+</category>
+</settings>
+    

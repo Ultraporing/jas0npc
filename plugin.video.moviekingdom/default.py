@@ -1,458 +1,574 @@
-import urllib,urllib2,re,cookielib,xbmcplugin,xbmcgui,xbmcaddon,socket,os,shutil,urlresolver,string,xbmc
-import HTMLParser,base64,datetime,time,json
-local = xbmcaddon.Addon(id='plugin.video.moviekingdom')
-sys.path.append( os.path.join( local.getAddonInfo('path'), 'resources', 'lib' )) 
+import os,xbmcplugin,xbmcgui,xbmcaddon,xbmc
+import urllib,urllib2,re,sys,string,time,datetime
 
-from t0mm0.common.net import Net
-from t0mm0.common.addon import Addon
-from BeautifulSoup import BeautifulSoup
-from metahandler import metahandlers
-from sqlite3 import dbapi2 as database
-from xgoogle.search import GoogleSearch, SearchError
-from hashlib import md5
-from ga import *
+error_logo  = xbmc.translatePath('special://home/addons/plugin.video.moviekingdom/resources/art/redx.png')
+try:
+    import urlresolver
+    from addon.common.addon import Addon
+    from addon.common.net   import Net as net
+    from metahandler        import metahandlers
+    from BeautifulSoup      import BeautifulSoup
+    from universal          import favorites, watchhistory, playbackengine
+except Exception, e:
+    xbmc.executebuiltin("XBMC.Notification([COLOR blue]Movie Kingdom Error[/COLOR],[COLOR blue]Failed To Import Needed Modules Check Log For Details[/COLOR],7000,"+error_logo+")")
+    xbmc.log('Movie Kingdom ERROR - Importing Modules: '+str(e))
+    sys.exit(0)
 
-socket.setdefaulttimeout(300)# Bloody tvdb - slow or dead
-grab = metahandlers.MetaData(preparezip = False)
-net = Net()
-IMDM = None
-Addon = Addon('plugin.video.moviekingdom', sys.argv)
-BASE_URL = 'http://www.movie-kingdom.com/'
-announce = 'http://jas0npc-xbmc-repository.googlecode.com/svn/trunk/announce/MK_NOTICE.xml'
-cookie_path = os.path.join(Addon.get_profile(), 'cookies')                 
-cookie_jar = os.path.join(cookie_path, "cookiejar.lwp")
+
+addonID = 'plugin.video.moviekingdom'
+addon = Addon(addonID, sys.argv)   #t0mm0 addon Initialization
+datapath = xbmc.translatePath(addon.get_profile())
+local = xbmcaddon.Addon(id=addonID)#xbmc addon Initialization
+baseUrl = 'http://www.movie-kingdom.com/'
+grab = metahandlers.MetaData()
+sys.path.append(xbmc.translatePath(os.path.join( local.getAddonInfo('path'), 'resources', 'lib' ))) 
+userAgent = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.3) Gecko/2008092417 Firefox/3.0.3'
+fav = favorites.Favorites(addonID, sys.argv)
 downloadPath = local.getSetting('download-folder')
+DownloadLog=os.path.join(datapath,'Downloads')
+try:os.makedirs(DownloadLog)
+except:pass
+DownloadFile=os.path.join(DownloadLog,'DownloadLog')
 
-if os.path.exists(cookie_path) == False:                        
-    os.makedirs(cookie_path)
+
+
+
+def MAIN():#addDir(mode,url,types,meta_name,name,iconimage,totalItems,imdb,special,queued)
+    addDir(10, baseUrl+'new-shows/', None, None, 'TV - Latest Added Episodes', '', 0, 'TVE', None, '')
+    addDir(11, baseUrl, None, None, 'TV - Random Tv Shows', '', 0, 'TVR', None, '')
+    addDir(14, baseUrl, None, None, 'TV - By Genres', '', 0, 'TVG', None, '')
+    addDir(15, baseUrl+'a-z-shows.php', None, None, 'TV - By A To Z', '', 0, 'TVA', None, '')
+    addDir(mode, None, None, None, '[COLOR blue]--------------------------------------------------------------------------[/COLOR]', '', 0, '', True, '')
+    addDir(30, baseUrl+'new-movies/', None, None, 'Movies - Latest Added', '', 0, 'MVA', None, '')
+    addDir(30, baseUrl, None, None, 'Movies - Featured Movies', '', 0, 'MVF', None, '')
+    addDir(11, baseUrl, None, None, 'Movies - Random Movies', '', 0, 'MVR', None, '')
+    addDir(14, baseUrl, None, None, 'Movies - By Genres', '', 0, 'MVG', None, '')
+    addDir(15, baseUrl+'a-z-movies.php', None, None, 'Movies - By A To Z', '', 0, 'MVZ', None, '')
+    addDir(mode, None, None, None, '[COLOR blue]--------------------------------------------------------------------------[/COLOR]', '', 0, '', True, '')
+    #addDir(40, baseUrl+'pages/music', None, None, 'Music - Stream Albums From MovieKingdom', '', 0, 'MUS', None, '')
+    addDir(200, None, None, None, 'Search', '', 0, 'SR', None, '')
     
-art = xbmc.translatePath(os.path.join(local.getAddonInfo('path'), 'resources', 'art'))
-error_pic = os.path.join(art, 'redx.png')
-                         
 
-user = local.getSetting('username')
-passs = local.getSetting('password')
-password = md5(passs).hexdigest()
-print 'moviekingdom v1.0'
+def TvEpisodes(url, imdb):
+    html = OpenUrl(url)
+    if imdb == 'TVE':
+        pattern = 'tons\"\>\n.+?\<a\shref=\"(.+?)\".+?php\?src=(.+?)\&'
+        r = re.findall(pattern, html, re.I|re.M|re.DOTALL)
+    elif imdb == 'TVS':
+        pattern = 'class=\"buttons\"\>\n.+?\<a\shref=\"(.+?)"\srel=\"bookmark\"\stitle=\".+?\"\>\n.+?\<img\ssrc=\".+?php\?src=(.+?)\&'
+        r = re.findall(r''+pattern+'', html, re.I|re.M|re.DOTALL)
+        print 'tvep TVS'
+        print r
+    totalitems = len(r)
+    for url, img in r:
+        print url
+        if re.findall('season/\d+/episode/\d+', url, re.I):
+            r = re.split('com/show/', url.replace('-', ' ').replace('/sea', ': Sea'))
+            name = re.sub(r'/', ' ', r[1]).title()
+            addDir(20, url, 'episode', name, name, img, totalitems, imdb,'', '')
 
+def Random(url, imdb):
+    html = OpenUrl(url)
+    if imdb == 'TVR':
+        types = 'tvshow'
+        mode = '13'
+        pattern = 'imageWrapper\"\>\n.+?\<a\shref=\"(http:\/\/www\.movie-kingdom\.com\/show\/.+?)\"\sclass.+?php\?src=(.+?)\&'
+        urlP = 'show'
+    elif imdb == 'MVR':
+        types = 'movie'
+        html = re.findall(r'e">Random Movies</h3>(.+?)e">Random TV Shows</h3>', html, re.I|re.DOTALL)[0]
+        pattern = 'imageWrapper\"\>.+?\<a\shref="(http\:\/\/www.movie-kingdom.com\/movie/.+?)"\s+class=\"\"\>.+?src.+?php\?src=(.+?)\&'
+        urlP = 'movie'
+        mode = '20'
+    r = re.findall(r''+pattern+'', html, re.I|re.M|re.DOTALL)
+    totalitems = len(r)
+    for url, img in r:
+        name = re.findall(r'.com/'+urlP+'/(.+)', url.replace('-',' '))[0].title()
+        addDir(mode, url, types, name, name, '', totalitems, imdb, None, None)
 
-def MAIN():
-    try:
-        link = net.http_GET(announce).content
-        ANNOUNCEMENT(link)
-    except urllib2.URLError, e:
-        pass
-    #addDir(mode,mode2,url,types,linkback,meta_name,name,iconimage)
-    addDir(30,None,BASE_URL,None,None,None,'TV Menu',os.path.join(art, 'tvmenu.png'),0,'')
-    addDir(40,None,BASE_URL,None,None,None,'Movie Menu',os.path.join(art, 'moviemenu.png'),0,'')
-    addDir(60,None,BASE_URL,None,None,None,'[COLOR green][B]Search Menu[/B][/COLOR]',os.path.join(art, 'searchman.jpg'),0,'')
-    addSpecial('[COLOR yellow]Resolver Settings[/COLOR]','www.nonsense.com','10','')
-    addSpecial('[COLOR blue]Having problems, Need help, Click here[/COLOR]','www.nonsense.com','20','')
-    GA("None","MAIN")
-    setView('movies', 'default')
     
-def TV_SECTION(url):
-    addDir(34,'newest_episodes',BASE_URL+'new-shows',None,None,None,'New Episodes',os.path.join(art, 'ntvepisodes.png'),0,'')
-    addDir(31,'tv_genres',BASE_URL,None,None,None,'Shows By Genre','',0,'')
-    addDir(32,'featured',BASE_URL,None,None,None,'Featured Shows',os.path.join(art, 'featuredshows.png'),0,'')
-    addDir(33,'random_tv',BASE_URL,None,None,None,'Random Shows','',0,'')
-    setView('movies', 'default')
-    GA("None","TV Section")
 
-def TV_GENRES(url):
-    html = GET_HTML(url)
-    if html == None:
-        return
-    r = re.findall(r'TV shows</a>\n<ul class="sub-menu">(.+?)</ul>\n</li>',html,re.M|re.DOTALL)
-    pattern = 'a href="(http://www.movie-kingdom.com/tv-tags/.+?)">(.+?)</a></li>'
-    r = re.findall(pattern,str(r))
-    totalItems = len(r)
-    for url, name in r:
-        addDir(50,mode2,url,None,None,None,name,'',totalItems,'')
-    setView('movies', 'anything')
-    GA("None","TV Genres")
+def TvSeason(url, meta_name, imdb):
+    html = OpenUrl(url)
+    pattern = 'value=\"(.+?)\"\>(Season\s\d+)\<\/option\>'
+    r = re.findall(r''+pattern+'', html)
+    totalitems = len(r)
+    for url, season in r:
+        r = re.findall(r'\/show\/(.+?)\/', url.replace('-', ' ').title(), re.I)
+        name = r[0]+': '+season
+        addDir(10, url, 'season', url.title(), name.title(), '', totalitems, 'TVS', None, None)
+    #setView('season', 'season')
 
-def FEATURED_SHOWS(url):
-    html = GET_HTML(url)
-    if html == None:
-        return
-    r = re.findall(r'<div id="featured">(.+?)<div id="featured">',html,re.M|re.DOTALL)
-    pattern = '<h2>.+?<a href="(.+?)" title=".+?">(.+?)</a>.+?</h2>'
-    r = re.findall(pattern,str(r),re.M|re.DOTALL)
-    totalItems = len(r)
-    for url, name in r:
-        name = name.replace('\\','')
-        addDir(50,'season',url,'tvshow',None,None,name,'',totalItems,'')
-    setView('movies', 'anything')
-    GA("None","Featured Shows")
-
-def RANDOM_SHOWS(url):
-    html = GET_HTML(url)
-    if html == None:
-        return
-    r = re.findall('<h3 class="title">Random TV Shows</h3>(.+?)class="widget tabbertabs">',html,re.M|re.DOTALL)
-    pattern = ' class="imageWrapper">.+?<a href="(.+?)" class=".+?<p.+?">(.+?)</p>'
-    r = re.findall(pattern,str(r),re.M|re.DOTALL)
-    totalItems = len(r)
-    for url, name in r:
-        name = name.replace('\\n','').replace('\\','')
-        addDir(50,'season',url,'tvshow',None,None,name,'',totalItems,'')
-    setView('movies', 'anything')
-    GA("None","Random Shows")
-
-def NEWEST_EPISODES(url):
-    html = GET_HTML(url)
-    if html == None:
-        return
-    pattern = '<h2>.+?<a href="(.+?)" title=".+?">(.+?)</a>.+?</h2>'
-    r = re.findall(pattern,html,re.M|re.DOTALL)
-    totalItems = len(r)
-    for url, name in r:
-        name = name.replace('\\','')
-        print '+++++++++++++++++NAMES: '+str(name)
-        addDir(50,mode2,url,'tvshow',None,None,name,'',totalItems,'False')
-    setView('movies', 'anything')
-    GA("None","Newest Episodes")
-
-def MOVIE_SECTION(url):
-    #addDir(mode,None,BASE_URL+'new-movies',None,None,None,'New Movies','')
-    addDir(41,'movie_genres',BASE_URL,None,None,None,'Movies By Genre','',0,'')
-    addDir(42,'random_movies',BASE_URL,None,None,None,'Random Movies','',0,'')
-    addDir(43,'latest_movies_added',BASE_URL,None,None,None,'Latest Movies Added',os.path.join(art, 'latestmovies .png'),0,'')
-    setView('movies', 'default')
-    GA("None","Movie Section")
-
-def MOVIES_GENRES(url):
-    html = GET_HTML(url)
-    if html == None:
-        return
-    r = re.findall(r'Movies</a>\n<ul class="sub-menu">(.+?)</ul>\n</li>',html,re.M|re.DOTALL)
-    pattern = 'a href="(http://www.movie-kingdom.com/movie-tags/.+?)">(.+?)</a></li>'
-    r = re.findall(pattern,str(r))
-    totalItems = len(r)
-    for url, name in r:
-        addDir(50,mode2,url,None,None,None,name,'',totalItems,'')
-    setView('movies', 'anything')
-    GA("None","Movie Genres")
-
-def RANDOM_MOVIES(url):
-    html = GET_HTML(url)
-    if html == None:
-        return
-    #temp = re.findall(r'Released: <a href="http://www.movie-kingdom.com/index.php\?menu=search\&year=.+?">(.+?)</a>.+?IMDB rating:.+?<a href="http://www.imdb.com/title/(.+?)" tar',html,re.M|re.DOTALL)
-    #for year, IMDM in temp:
-    #    IMDM = IMDM+':'+year
-    r = re.findall('<h3 class="title">Random Movies</h3>(.+?)<div class="widget">.+?<h3 class="title">Random TV Shows',html,re.M|re.DOTALL)
-    pattern = ' class="imageWrapper">.+?<a href="(.+?)" class=".+?<p.+?">(.+?)</p>'
-    r = re.findall(pattern,str(r),re.M|re.DOTALL)
-    totalItems = len(r)
-    for url, name in r:
-        name = name.replace('\\n','').replace('\\','')
-        addDir(50,'random_movies',url,'movie',None,None,name,'',totalItems,'False')
-    setView('movies', 'anything')
-    GA("None","Random Movies")
-
-def LATEST_MOVIES_ADDED(url):
-    html = GET_HTML(url)
-    if html == None:
-        return
-    
-    r = re.findall(r'<h3>Latest Movies Added</h3>(.+?)<div id="tv_guide">',html,re.M|re.DOTALL)
-    #pattern = '<h2>.+?<a href="(.+?)" title=".+?">(.+?)</a>'
-    pattern = '<h2>.+?<a href="(.+?)" title=".+?">(.+?)</a>'#.+?Released:'
-    #pattern +=' <a href=".+?">(.+?)</a>.+?IMDB rating:.+?<a '
-    #pattern +='href="http://www.imdb.com/title/(.+?)" tar'
-    r = re.findall(pattern,str(r),re.M|re.DOTALL)
-    totalItems = len(r)
-    for url, name in r:#, year, IMDM in r:
-        name = name.replace('\\','')
-        #IMDM = IMDM+':'+year
-        addDir(50,mode2,url,'movie',None,None,name,'',totalItems,'False')
-    setView('movies', 'anything')
-    GA("None","Latest Movies")
-
-def INDEX(url,name,types):
-    sources = []
-    html = GET_HTML(url)
-    if html == None:
-        return
-    if mode2 == 'movie_genres':
-        pattern = '<h2>.+?<a href="(.+?)" title=".+?">(.+?)</a'#Released:'
-        #pattern +=' <a href=".+?">(.+?)</a>.+?IMDB rating:.+?<a '
-        #pattern +='href="http://www.imdb.com/title/(.+?)" tar'
-        r = re.findall(pattern,html,re.M|re.DOTALL)
-        totalItems = len(r)
-        for url, name in r:#, year, IMDM in r:
-            name = name.replace('\\','')
-            #IMDM = IMDM+':'+year
-            addDir(50,'random_movies',url,'movie',None,'',name,'',totalItems,'False')
-            setView('movies', 'anything')
-    elif mode2 == 'tv_genres':
-        pattern = '<h2>.+?<a href="(.+?)" title=".+?">(.+?)</a>.+?IMDB rating:.+?<a href='
-        pattern +='"http://www.imdb.com/title/(.+?)" targ'
-        r = re.findall(pattern,html,re.M|re.DOTALL)
-        totalItems = len(r)
-        for url, name, IMDM in r:
-            name = name.replace('\\','')
-            addDir(50,'season',url,'tvshow',IMDM,None,name,'',totalItems,'')
-        setView('movies', 'anything')
-    elif mode2 == 'season':
-        pattern = 'class="page-numbers current" href="(.+?)">(.+?)</a>'
-        IMDM = re.findall(r'IMDB rating:.+?<a href="http://www.imdb.com/title/(.+?)" tar',html,re.M|re.DOTALL)
-        r = re.findall(pattern, html, re.M|re.DOTALL)
-        totalItems = len(r)
-        for url, season in r:
-            name = re.split('show',url)
-            name = str(name[1]).replace('/',' ').replace('-',' ')
-            addDir(50,'episode',url,'season',IMDM[0],None,name,'',totalItems,'')
-        setView('movies', 'season')
-    elif mode2 == 'episode':
-        r = re.findall(r'class="icon-eye-open"></i>(.+?)</h2>',html,re.M|re.DOTALL)
-        pattern = 'a href="(.+?)" title=".+?">(.+?)</a>'
-        r = re.findall(pattern,str(r),re.M|re.DOTALL)
-        totalItems = len(r)
-        for url, episode in r:
-            addDir(50,'newest_episodes',url,'episode',linkback,meta_name,episode,'',totalItems,'False')
-        setView('movies', 'anything')
-    elif mode2 == 'latest_movies_added'or mode2 == 'random_movies' or mode2 == 'newest_episodes':
-        if types == 'episode' or types == 'tvshow':
-            title2 = name
-            title = name
-            temp = re.split('show/',url)
-            title2 = str(temp[1]).replace('/','-')
-            title = re.split('season',title2)
-            title = str(title[0]).replace('-',' ').strip()
-        if types == 'movie':
-            title = name
-            title2 = name
-        pattern = '<strong>(.+?)</strong>.+?<a href="(.+?)" tar'
-        r = re.findall(pattern,html,re.I|re.M|re.DOTALL)
-        for name, url in r:
-            url = url+':'
-            r = re.findall('http://adf.ly/.+?\/(.+?):',url)
-            for url in r:
-                url = 'http://'+url
-            r = re.findall('//(.+?)/',url)
-            for name in r:
-                if '.' in name:
-                    name = name.rpartition('.')
-                    name = str(name[0])
-            name = name.replace('www.','')
-            media = urlresolver.HostedMediaFile(url=url, title=name)
-            sources.append(media)
-    source = urlresolver.choose_source(sources)
-    try:
-        if source:
-            stream_url = source.resolve()
-            if types == 'episode':
-                types ='tvshow'
-            title2 = title2.replace('-',' ')
-            infoLabels = GRABMETA(title,types,linkback)
-            liz=xbmcgui.ListItem(title2, iconImage='',thumbnailImage=infoLabels['cover_url'])
-            liz.setInfo('Video', {'Title': title2} )
-            liz.setProperty("IsPlayable","true")
-            GA("None","Watching: '"+str(title2))
-            xbmc.Player().play(stream_url, liz)
-        else:
-            stream_url = ''
-            return
-    except:
-        xbmc.executebuiltin("XBMC.Notification([B][COLOR red]Streaming Error[/B][/COLOR],Try Another Hoster,5000,"+error_pic+")")
-        return
-def SEARCHMENU():
-    #addDir(mode,mode2,url,types,linkback,meta_name,name,iconimage,totalItems,folder)
-    addDir(90,'searchbyword',BASE_URL,None,None,None,'Search By Word','',0,'')
-    addDir(91,'searchbyyear',BASE_URL,None,None,None,'Search By Year','',0,'')
-    addDir(92,'searchbydirector',BASE_URL,None,None,None,'Search By Director','',0,'')
-        
-def SEARCHBYWORD():
-    last_search = Addon.load_data('search')
-    if not last_search: last_search = ''
-    search_entered =''
-    keyboard = xbmc.Keyboard(search_entered, '[B][I] SEARCH Movie-kingdom[/B][/I]')
-    last_search = last_search.replace('+',' ')
-    keyboard.setDefault(last_search)
-    keyboard.doModal()
-    if keyboard.isConfirmed():
-        search_entered = keyboard.getText().replace(' ','+')# sometimes you need to replace spaces with + or %20#
-        Addon.save_data('search',search_entered)
-    if search_entered == None or len(search_entered)<1:
-        SEARCHMENU()
-    else:
-        url = 'http://www.movie-kingdom.com/index.php?menu=search&query=%s'%(search_entered)
-        html = GET_HTML(url)
-        if html == None:
-            return
-        net.save_cookies(cookie_jar)
-        pattern = '<h2>.+?<a href="(.+?)" title=".+?">(.+?)</a>.+?</h2>'
-        IMDM = re.findall(r'IMDB rating:.+?<a href="http://www.imdb.com/title/(.+?)" tar',html,re.M|re.DOTALL)
-        r = re.findall(pattern,html,re.M|re.DOTALL)
-        totalItems = len(r)
-        for url, name in r:
-            if '/show/' in url:
-                mode2 = 'newest_episodes'
-                types = 'tvshow'
-                linkback = None
-                video = ''
-            else:
-                mode2 = 'random_movies'
-                types = 'movie'
-                linkback = IMDM[0]
-                video = 'False'
-            addDir(50,mode2,url,types,None,'',name,'',totalItems,'False')
-        GA("None","Search: "+search_entered)
-    setView('movies', 'anything')
-
-def SEARCHBYYEAR():
-    keyboard = xbmcgui.Dialog().numeric(0, '[B][I] SEARCH Movie-kingdom[/B][/I]')
-    if len(keyboard) != 4:
-        dialog = xbmcgui.Dialog()
-        dialog.ok("[B]SEARCH ERROR[/B]", "Search by year date MUST be four numbers long.","eg. 1998, 2011, 2013 only.","")
-        SEARCHMENU()
-    url = 'http://www.movie-kingdom.com/index.php?menu=search&year=%s' %(keyboard)
-    html = GET_HTML(url)
-    if html == None:
-        return
-    pattern = '<h2>.+?<a href="(.+?)" title=".+?">(.+?)</a>'
-    r = re.findall(pattern,html,re.M|re.DOTALL)
-    totalItems = len(r)
-    for url, name in r:
-        if 'com/show/' in url:
-            types = 'tvshow'
-            mode2 = 'season'
-            video = ''
-    
-        if 'com/movie/' in url:
-            types = 'movie'
-            mode2 = 'latest_movies_added'
-            video = 'False'
-            #addDir(50,mode2,url,types,linkback,'',name,'',totalItems,'False')
-        addDir(50,mode2,url,types,None,None,name,'',totalItems,video)
-    setView('movies', 'anything')
-    
-def SEARCHBYDIRECTOR():
-    last_search = Addon.load_data('director')
-    if not last_search: last_search = ''
-    search_entered =''
-    keyboard = xbmc.Keyboard(search_entered, '[B][I] SEARCH Movie-kingdom by Director[/B][/I]')
-    last_search = last_search.replace('%20',' ')
-    keyboard.setDefault(last_search)
-    keyboard.doModal()
-    if keyboard.isConfirmed():
-        search_entered = keyboard.getText().replace(' ','%20')# sometimes you need to replace spaces with + or %20#
-        Addon.save_data('director',search_entered)
-    if search_entered == None or len(search_entered)<1:
-        SEARCHMENU()
-    url = 'http://www.movie-kingdom.com/index.php?menu=search&director=%s'%(search_entered)
-    html = GET_HTML(url)
-    if html == None:
-        return
-    pattern = '<h2>.+?<a href="(.+?)" title=".+?">(.+?)</a>'
-    r = re.findall(pattern,html,re.M|re.DOTALL)
-    totalItems = len(r)
-    for url, name in r:
-        if 'com/movie/' in url:
-            types = 'movie'
-            mode2 = 'latest_movies_added'
-        else:
-            types = 'tvshow'
-            mode2 = 'season'
-        addDir(50,mode2,url,types,None,None,name,'',totalItems,'False')
-    GA("None","SEARCH BY DIRECTOR: "+search_entered)
-    setView('movies', 'anything')
-    
-def TRAILERSEARCH(url, name, manual=False):#Thanks to Eldorado for coding this in icefilms
-    search = name
-    res_name = []
+def Genre(url, imdb):
+    res_genre = []
     res_url = []
-    imdb_id = linkback
-    site = ' site:http://www.youtube.com '
-    results = SearchGoogle(search+' official trailer', site)
-    for res in results:
-        if res.url.encode('utf8').startswith('http://www.youtube.com/watch'):
-            res_name.append(res.title.encode('utf8'))
-            res_url.append(res.url.encode('utf8'))
-    results = SearchGoogle(search[:(len(search)-7)]+' official trailer', site)
-    for res in results:
-        if res.url.encode('utf8').startswith('http://www.youtube.com/watch') and res.url.encode('utf8') not in res_url:
-            res_name.append(res.title.encode('utf8'))
-            res_url.append(res.url.encode('utf8'))
-            
+    html = OpenUrl(url)
+    if 'TVG' in imdb:pattern = 'href=\"(http:\/\/www.movie-kingdom.com\/tv-tags\/\w+)\"\sstyle'
+    elif 'MVG' in imdb:pattern = 'href=\"(http:\/\/www.movie-kingdom.com\/movie-tags\/\w+)\"\sstyle'
+    r = re.findall(r''+pattern+'', html, re.I)
+    for url in r:
+        r = url.rpartition('/')
+        name = r[2].title()
+        res_genre.append(name)
+        res_url.append(url)
     dialog = xbmcgui.Dialog()
-    ret = dialog.select(search + ' trailer search',res_name)
-    trailer_url = res_url[ret - 0]
-    GA("None","Watching Trailer: "+name)
-    try:
-        xbmc.executebuiltin(
-            "PlayMedia(plugin://plugin.video.youtube/?action=play_video&videoid=%s&quality=720p)" 
-            % str(trailer_url)[str(trailer_url).rfind("v=")+2:] )
+    ret = dialog.select('Please Select Genre',res_genre)
 
-        grab.update_trailer('movie', imdb_id, trailer_url)
-        xbmc.executebuiltin("XBMC.Container.Refresh")
-        GA("None","Watching Trailer: "+name)
-    except:
-        xbmc.executebuiltin("XBMC.Notification([B][COLOR red]Error[/B][/COLOR],Please try again,10000,error_pic)")
-        GA("None","ERROR Watching Trailer")
-        return
+    if ret == -1:MAIN()
+    genreUrl = res_url[ret]
+    html = BeautifulSoup(net(userAgent).http_GET(genreUrl).content).prettify
+    soup = BeautifulSoup(str(html))
+    a = soup.findAll("div", {"class": "buttons"})
+    if 'TVG' in imdb:pattern = '\<\/div\>,\s\<div\sclass=\"buttons\"\>\n\<a\shref=\"(.+?)\".+?php\?src=(.+?)\&'
+    elif 'MVG' in imdb:pattern = '\<\/div\>,\s\<div\sclass=\"buttons\"\>\n\<a\shref=\"(.+?)\".+?php\?src=(.+?)\&'
+    r = re.findall(r''+pattern+'', str(a), re.I|re.M|re.DOTALL)
+    totalitems = len(r)
+    for url, img in r:
+        name = url.rpartition('/')
+        name = name[2].replace('-', ' ').title()
+        if '.com/show/' in url:
+            types = 'tvshow'
+            mode = '13'
+        elif '.com/movie/' in url:
+            types = 'movie'
+            mode = '20'
+        addDir(mode, url, types, name, name, img, totalitems, imdb, None, None)
 
-    
-def SearchGoogle(search, site):
-    gs = GoogleSearch(''+search+' '+site)
-    gs.results_per_page = 25
-    gs.page = 0
-    try:
-        results = gs.get_results()
-    except Exception, e:
-        print '***** Error: %s' % e
-        return None
-    return results
-
+def MoviesLatest(url, imdb):
+    html = OpenUrl(url)
+    if 'MVA' in imdb:
+        pattern = 'tons\"\>\n.+?\<a\shref=\"(.+?)\".+?php\?src=(.+?)\&'
+        r = re.findall(r''+pattern+'', html, re.I|re.M|re.DOTALL)
+        t = set(r)
+        r = tuple(t)
+    elif 'MVF' in imdb:
+        temp = re.findall('\<h3\>Featured\sMovies\<\/h3\>(.+?)\<\!-- This\sis\sthe\sb', html, re.I|re.M|re.DOTALL)
+        r = re.findall('\<li\>.+?<h2\>.+?\<a\shref=\"(.+?)\"\stitle.+?php\?src=(.+?)\&', str(temp), re.I|re.M|re.DOTALL)
+        t = re.findall('</span>.+?<a\shref=\"(.+?)\"\stitle.+?php\?src=(.+?)\&', str(temp), re.I|re.M|re.DOTALL)
+        r = r+t
+    totalitems = len(r)
+    for url, img in r:
+        name = re.findall(r'.com\/movie\/(.+?)\"', url+'"', re.I)[0]
+        addDir(20, url, 'movie', name.replace('-', ' ').title(), name.replace('-', ' ').title(), img, totalitems, imdb, None, '')
         
-def GET_HTML(url):
+def MusicIndex(url, imdb):
+    print 'music'
+    print url
+    print imdb
+
+def Search(url, imdb):
+    if imdb == 'SRO':
+        search = url.lower().strip().replace(' ', '-')
+        html = BeautifulSoup(net(userAgent).http_GET('http://www.movie-kingdom.com/a-z-movies.php').content).prettify
+        r = re.findall('\<a\shref=\"(\S+'+search+'\S+)\"\sti', str(html), re.I)
+        html = BeautifulSoup(net(userAgent).http_GET('http://www.movie-kingdom.com/a-z-shows.php').content).prettify
+        t = re.findall('href="(\S*'+search+'\S*)"', str(html), re.I)
+        r = r+t
+        totalitems = len(r)
+        for url in r:
+            name = url.rpartition('/')
+            name = name[2].replace('-', ' ').strip().title()
+            if '.com/show/' in url:
+                addDir(13, url, 'tvshow', name, '[COLOR blue]TV:[/COLOR]'+name, '', totalitems, 'TVR',False, '')
+            elif '.com/movie/' in url:
+                addDir(20, url, 'movie', name, '[COLOR blue]MOVIE:[/COLOR]'+name, '', totalitems, 'MVR', False, '')
+                
+    elif imdb == 'SR':
+        searchType = ['By Name', 'By Year', 'By Director', 'By Actor']
+        dialog = xbmcgui.Dialog()
+        ret = dialog.select('Choose How To Search', searchType)
+        if ret == -1:MAIN()
+        searchtype = searchType[ret]
+
+        if ret == 0:
+            url = 'http://www.movie-kingdom.com/index.php?menu=search&query='
+            last_search = addon.load_data('search')
+            if not last_search: last_search = ''
+            search =''
+            keyboard = xbmc.Keyboard(search, '[B]SEARCH Movie-kingdom By Name[/B]'.title())
+            last_search = last_search.replace('-',' ')
+            keyboard.setDefault(last_search)
+            keyboard.doModal()
+            if keyboard.isConfirmed():
+                search = keyboard.getText().replace(' ','-')
+                addon.save_data('search', search)
+                if search == None or len(search)<1:MAIN()
+                html = BeautifulSoup(net(userAgent).http_GET('http://www.movie-kingdom.com/a-z-movies.php').content).prettify
+                r = re.findall('\<a\shref=\"(\S+'+search+'\S+)\"\sti', str(html), re.I)
+                html = BeautifulSoup(net(userAgent).http_GET('http://www.movie-kingdom.com/a-z-shows.php').content).prettify
+                t = re.findall('href="(\S*'+search+'\S*)"', str(html), re.I)
+                r = r+t
+
+        if ret == 1:
+            url = 'http://www.movie-kingdom.com/index.php?menu=search&year='
+            search = xbmcgui.Dialog().numeric(0, '[B]SEARCH By Year[/B]'.title())
+            if len(search)!= 4:
+                dialog = xbmcgui.Dialog()
+                dialog.ok("[B]SEARCH ERROR[/B]", "Search by year date MUST be four numbers long.","eg. 1998, 2011, 2013 only.","")
+                Search('','SR')
+            html = net(userAgent).http_GET(url+search).content
+            pattern = '\"buttons\"\>.+?\<a\shref="(.+?)\"'
+            r = re.findall(r''+pattern+'', html, re.I|re.DOTALL)
+
+        if ret == 2:
+            url = 'http://www.movie-kingdom.com/index.php?menu=search&director='
+            last_search = addon.load_data('search')
+            if not last_search: last_search = ''
+            search =''
+            keyboard = xbmc.Keyboard(search, '[B]SEARCH By director[/B]'.title())
+            last_search = last_search.replace('-',' ')
+            keyboard.setDefault(last_search)
+            keyboard.doModal()
+            if keyboard.isConfirmed():
+                search = keyboard.getText().replace(' ','-')
+                addon.save_data('search', search)
+                if search == None or len(search)<1:MAIN()
+                html = net(userAgent).http_GET(url+search).content
+                pattern = '\"buttons\"\>.+?\<a\shref="(.+?)\"'
+                r = re.findall(r''+pattern+'', html, re.I|re.DOTALL)
+
+        if ret == 3:
+            url = 'http://www.movie-kingdom.com/index.php?menu=search&star='
+            last_search = addon.load_data('search')
+            if not last_search: last_search = ''
+            search =''
+            keyboard = xbmc.Keyboard(search, '[B]SEARCH By Actor[/B]'.title())
+            last_search = last_search.replace('-',' ')
+            keyboard.setDefault(last_search)
+            keyboard.doModal()
+            if keyboard.isConfirmed():
+                search = keyboard.getText().replace(' ','-')
+                addon.save_data('search', search)
+                if search == None or len(search)<1:MAIN()
+                html = net(userAgent).http_GET(url+search).content
+                pattern = '\"buttons\"\>.+?\<a\shref="(.+?)\"'
+                r = re.findall(r''+pattern+'', html, re.I|re.DOTALL)
+
+        totalitems = len(r)
+        for url in r:
+            name = url.rpartition('/')
+            name = name[2].strip().replace('-', ' ').title()
+            if '.com/show/' in url:
+                addDir(13, url, 'tvshow', name, '[COLOR blue]TV:[/COLOR]'+name, '', totalitems, 'TVR',False, '')
+            elif '.com/movie/' in url:
+                addDir(20, url, 'movie', name, '[COLOR blue]MOVIE:[/COLOR]'+name, '', totalitems, 'MVR', False, '')
+    
+def AtoZ(url, imdb):
+    res_name = []
+    res_letter = []
+    res_name.append('#1234')
+    res_letter.append('#1234')
+    for l in string.uppercase:
+        res_name.append(l.title())
+        res_letter.append(l.title())
+    dialog = xbmcgui.Dialog()
+    ret = dialog.select('Select The Letter', res_name)
+    if 'TVA' in imdb:
+        cat = 'show/'
+        types = 'tvshow'
+        mode = '13'
+    if 'MVZ' in imdb:
+        cat = 'movie/'
+        types = 'movie'
+        mode = '20'
+
+    if ret == -1:MAIN()
+    letter = res_letter[ret]
+    if '#1234' in letter: pattern = 'a\shref=\"('+baseUrl+cat+'\d.+?)\" title'
+    else: pattern = 'a\shref=\"('+baseUrl+cat+letter+'.+?)\" title'
+    html = net(userAgent).http_GET(url).content
+    r = re.findall(pattern, html, re.I|re.M)
+    totalitems = len(r)
+    for url in r:
+        name = url.rpartition('/')[2].replace('-', ' ').title()
+        addDir(mode, url, types, name, name, '', totalitems, imdb, None, '')
+    
+def ListHosts(url, name, imdb):
+    originalName = name
+    sources = []
+    html = BeautifulSoup(net(userAgent).http_GET(url).content).prettify
+    soup = BeautifulSoup(str(html))
+    a = soup.findAll("span", {"class": "embed-out-link"})
+    pattern = 'http://adf.ly/\d+/(.+?)\"'
+    r = re.findall(pattern, str(a), re.I)
+    for url in r:
+        if 'www' in url: url = 'http://'+url
+        else: url = 'http://www.'+url
+        hosted_media = urlresolver.HostedMediaFile(url=url, title=name)
+        sources.append(hosted_media)
+    sources = urlresolver.filter_source_list(sources)
+    r = re.findall(r'url\'\: \'(.+?)\', \'host', str(sources))
+    totalitems = len(r)
+    hoster = []
+    if 'DM' in imdb:
+        for url in r:
+            name = re.findall(r'\.(\w+)\.', url)[0].title()
+            hoster.append(url)
+        return (hoster)
+
+    else:
+        for url in r:
+            name = re.findall(r'\.(\w+)\.', url)[0].title()
+            addDir(100, url, None, originalName, name, '', totalitems, imdb+'HL', True, None)
+
+def WatchTrailer(url):
+    html = net(userAgent).http_GET(url).content
+    pattern = '<div id="trailers" style="margin-bottom:-15px"></div>\n.+?<script type="text/javascript" src="(.+?)">.+?</script>'
+    r = re.findall(r''+pattern+'', html, re.I|re.M|re.DOTALL)
+    for url in r:
+        html = net(userAgent).http_GET(url).content
+        pattern = '\"media\$player\"\:\[\{\"url\"\:\"(.+?)\&feat'
+        r = re.findall(r''+pattern+'', html)
+        try:trailer_url = r[0]
+        except:sys.exit(0)
+        xbmc.executebuiltin("PlayMedia(plugin://plugin.video.youtube/?action=play_video&videoid=%s)"
+                            %(trailer_url)[str(trailer_url).rfind("v=")+2:] )            
+    
+def PlaySource(url, types, meta_name, imdb, iconimage, queued):
+    print 'playsource'
+    print url
+    print types
+    print meta_name
+    print imdb
+    print iconimage
+    print queued
+    if local.getSetting("enable_meta") == "true":
+        if re.findall(r'season\s\d+\sepisode\s\d+',  meta_name, re.I):
+            infoLabels = GRABMETA(meta_name, 'episode')
+            types = 'tvshow'
+            season = infoLabels['season']
+            episode= infoLabels['episode']
+            whmeta = {'supports_meta': 'true','episode': str(infoLabels['episode']), 'name': meta_name, 'season': str(infoLabels['season']),
+                      'video_type': 'Episode', 'imdb_id': infoLabels['imdb_id'], 'cover_url': infoLabels['cover_url']}
+            print whmeta
+        elif re.findall(r'M.+?HL', imdb):
+            infoLabels = GRABMETA(meta_name, 'movie')
+            types = 'movie'
+            season = ''
+            episode= ''
+            print infoLabels
+            whmeta = {'supports_meta': str('true'),'video_type': str('Movie'), 'imdb_id': str(infoLabels['imdb_id']), 'cover_url': str(infoLabels['cover_url']),
+                      'year': str(infoLabels['year']), 'duration': str(infoLabels['duration']), 'title': str(infoLabels['title']), 'fanart': str(infoLabels['backdrop_url']),
+                      'cover_url': str(infoLabels['cover_url']), 'imdb_id': str(infoLabels['imdb_id']), 'premiered': str(infoLabels['premiered'])}
+        img = infoLabels['cover_url']
+        fanart = infoLabels['backdrop_url']
+    else:
+        fanart = ''
+        infoLabels = ''
+        img = iconimage
+        season = ''
+        episode= ''
+        whmeta = ''
+            
+        #print season
+        #print episode
+    
+    if queued:
+        pass
+
     try:
-        req = urllib2.Request(url)
-        req.add_header('User-Agent', 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.3) Gecko/2008092417 Firefox/3.0.3')
-        response = urllib2.urlopen(req)
-        link = response.read()
-        response.close()
-        html = link
-        return html
-    except urllib2.URLError, e:
-        print "Failed to retrieve page: %s" %url
-        print 'Urllib2 error: '+str(e)
-        xbmc.executebuiltin("XBMC.Notification([B][COLOR red]Connection Error[/B][/COLOR],Network Error,5000,"+error_pic+")")
-        GA("HTML ERROR: ",str(e))        
-        return MAIN()
+        try:streamlink = urlresolver.resolve(url)
+        except:raise Exception ('File Not Found Or Removed')
+        wh = watchhistory.WatchHistory(addonID)
+        if streamlink:
+            if '%3A' in streamlink:
+                streamlink = streamlink.replace('%3A', ':').replace('%2F', '/')
+            player = playbackengine.PlayWithoutQueueSupport(resolved_url=streamlink, addon_id=addonID, video_type=types, title=meta_name.title(),
+                                                            season=season, episode=episode, year='', watch_percent=0.9, watchedCallback='',
+                                                            watchedCallbackwithParams=None, imdb_id=None, img=img, fanart=fanart, infolabels=infoLabels)
+            print 'img: '+img
+            print 'fanart: '+fanart
+            wh.add_video_item(str(meta_name).title(), streamlink, infolabels=whmeta, img=img, fanart=fanart, is_playable=True)
+            player.KeepAlive()
+        else:
+            raise Exception ('File Not Found Or Removed')
+    except Exception, e:
+        xbmc.executebuiltin("XBMC.Notification([COLOR blue]Movie Kingdom Error[/COLOR],[COLOR blue]"+str(e)+"[/COLOR],7000,"+error_logo+")")
+        xbmc.log('Movie Kingdom ERROR - No Playable Stream Found: '+str(e))
+        sys.exit(0)
+
+def Download(url, types, name, imdb):
+    if os.path.exists(downloadPath):
+        res_url = []
+        res_name = []
+        orig_name = name
+        orig_imdb = imdb
+        hosters = ListHosts(url, name, 'DM')
+        for host in hosters:
+            name = re.findall(r'\.(\w+)\.', host.title())[0]
+            res_url.append(host)
+            res_name.append(name)
+        dialog = xbmcgui.Dialog()
+        ret = dialog.select('Select The Hoster', res_name)
+        if ret == -1:return
+
+        url = urlresolver.resolve(res_url[ret])
+        if url == False:
+            xbmc.executebuiltin("XBMC.Notification([COLOR blue]Movie Kingdom Download Error[/COLOR],[COLOR blue]Unable To Download From This Host Check Log For Details[/COLOR],7000,"+error_logo+")")
+            xbmc.log('MOVIEKINGDOM DOWNLOAD ERROR: Unable To Download from '+res_name[ret])
+            sys.exit(0)
+        else:
+            if '%3A' in url:url = url.replace('%3A', ':').replace('%2F', '/')
+            if '.flv' in url:name = orig_name+'.flv'
+            if '.mkv' in url:name = orig_name+'.mkv'
+            if '.avi' in url:name = orig_name+'.avi'
+            if '.mp4' in url:name = orig_name+'.mp4'
+            else:name = orig_name+'.avi'
+            mypath=os.path.join(downloadPath,name)
+            if os.path.isfile(mypath) is True:
+                xbmc.executebuiltin("XBMC.Notification(Download Alert!,The video you are trying to download already exists!,8000)")
+            else:
+                DownloadInBack=local.getSetting('download-in-background')
+                if DownloadInBack == 'true':
+                    QuietDownload(url,mypath,orig_name,name)
+                else:
+                    DownLoad(url,mypath,orig_name,name)
+    else:
+        xbmc.executebuiltin("XBMC.Notification(Download Alert!,You have not set the download folder,8000)")
+        return False
+
+def QuietDownload(url, dest,originalName, videoname):#thanks goto eldordo from icefilms for this
+    #quote parameters passed to download script     
+    q_url = urllib.quote_plus(url)
+    q_dest = urllib.quote_plus(dest)
+    q_vidname = urllib.quote_plus(videoname)
+    q_vidOname = urllib.quote_plus(originalName)
+    
+    #Create possible values for notification
+    notifyValues = [2, 5, 10, 20, 25, 50, 100]
+
+    # get notify value from settings
+    NotifyPercent=int(local.getSetting('notify-percent'))
+    
+    script = os.path.join( local.getAddonInfo('path'), 'resources', 'lib', "DownloadInBackground.py" )
+    xbmc.executebuiltin( "RunScript(%s, %s, %s, %s, %s, %s)" % ( script, q_url, q_dest, q_vidname,q_vidOname, str(notifyValues[NotifyPercent]) ) )
+    return True
+
+
+def DownLoad(url, dest,originalName, displayname=False):
+         
+        if displayname == False:
+            displayname=url
+        delete_incomplete = 'true'
+        dp = xbmcgui.DialogProgress()
+        dp.create('Downloading:    '+displayname)
+        start_time = time.time() 
+        try: 
+            urllib.urlretrieve(url, dest, lambda nb, bs, fs: _pbhook(nb, bs, fs, dp, start_time))
+            open(DownloadFile,'a').write('{name="%s",destination="%s"}'%(originalName,dest))
+            
+        except:
+            if delete_incomplete == 'true':
+                #delete partially downloaded file if setting says to.
+                while os.path.exists(dest): 
+                    try: 
+                        os.remove(dest) 
+                        break 
+                    except: 
+                        pass 
+            #only handle StopDownloading (from cancel), ContentTooShort (from urlretrieve), and OS (from the race condition); let other exceptions bubble 
+            if sys.exc_info()[0] in (urllib.ContentTooShortError, StopDownloading, OSError): 
+                return False 
+            else: 
+                raise 
+            return False
+        return True
+
+def _pbhook(numblocks, blocksize, filesize, dp, start_time):
+        try: 
+            percent = min(numblocks * blocksize * 100 / filesize, 100) 
+            currently_downloaded = float(numblocks) * blocksize / (1024 * 1024) 
+            kbps_speed = numblocks * blocksize / (time.time() - start_time) 
+            if kbps_speed > 0: 
+                eta = (filesize - numblocks * blocksize) / kbps_speed 
+            else: 
+                eta = 0 
+            kbps_speed = kbps_speed / 1024 
+            total = float(filesize) / (1024 * 1024) 
+            mbs = '%.02f MB of %.02f MB' % (currently_downloaded, total) 
+            e = 'Speed: %.02f Kb/s ' % kbps_speed 
+            e += 'ETA: %02d:%02d' % divmod(eta, 60) 
+            dp.update(percent, mbs, e)
+        except: 
+            percent = 100 
+            dp.update(percent) 
+        if dp.iscanceled(): 
+            dp.close() 
+            raise StopDownloading('Stopped Downloading')
+
 
     
-def ANNOUNCEMENT(link):
-    #GA("ANNOUNCEMENT","Site Down")
-    r = re.findall(r'<title>(.+?)<Etitle><line1>(.+?)<Eline1><line2>(.+?)<Eline2><line3>(.+?)<Eline3>',link,re.I)
-    for title, line1, line2, line3 in r:
-        dialog = xbmcgui.Dialog()
-        ok = dialog.ok('[B][COLOR red]'+title+'[/B][/COLOR]','[COLOR red]'+line1+'[/COLOR]','[COLOR red]'+line2+'[/COLOR]','[COLOR red]'+line3+'[/COLOR]')
-    return
+def OpenUrl(url):
+    try:
+        html = net(user_agent=userAgent).http_GET(url).content
+        #import HTMLParser
+        #h = HTMLParser.HTMLParser()
+        #html = h.unescape(html)
+        return html#.encode('utf-8')
+    except urllib2.URLError, e:
+        xbmc.executebuiltin("XBMC.Notification([COLOR blue]Movie Kingdom Network Error[/COLOR],[COLOR blue]Failed To Connect To MovieKingdom.com Check Log For Details[/COLOR],7000,"+error_logo+")")
+        xbmc.log('MOVIEKINGDOM NETWORK ERROR: '+str(e))
+        sys.exit(0)
+        
     
-    
-def HELP():
-    help = SHOWHELP()
-    help.doModal()
-    GA("None","NEED HELP")
-    del help
 
 def setView(content, viewType):
-        # set content type so library shows more views and info
-        if content:
-                xbmcplugin.setContent(int(sys.argv[1]), content)
-        if ADDON.getSetting('auto-view') == 'true':#<<<----see here if auto-view is enabled(true) 
-                xbmc.executebuiltin("Container.SetViewMode(%s)" % ADDON.getSetting(viewType) )#<<<-----then get the view type
+    if content:
+        xbmcplugin.setContent(int(sys.argv[1]), content)
+    if addon.get_setting('auto-view') == 'true':
+        xbmc.executebuiltin("Container.SetViewMode(%s)" % addon.get_setting(viewType) )
+        
+    xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_UNSORTED )
+    xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_LABEL )
+    xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_VIDEO_RATING )
+    xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_DATE )
+    xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_PROGRAM_COUNT )
+    xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_VIDEO_RUNTIME )
+    xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_GENRE )
 
-class SHOWHELP(xbmcgui.Window):
-    def __init__(self):
-        self.addControl(xbmcgui.ControlImage(0,0,1280,720,os.path.join(art,'Help.png')))
-    def onAction(self, action):
-        if action == 92 or action == 10:
-            self.close()
+def GRABMETA(meta_name,types):
+    print types
+    print meta_name
+    type = types
+    if type == None: meta = {'cover_url': '','title': name}
+    if type == 'movie':
+        meta = grab.get_meta('movie', meta_name, '', '', '', overlay=6)
+        print meta
+
+        
+    if type == 'episode':
+        r = re.findall(r'(.+?):\s\w+\s(\d+)\s\w+\s(\d+)', meta_name.strip(), re.I)
+        for name, season, episode in r:
+            meta = grab.get_meta('tvshow', name, '', '', '', overlay=6)
+            imdb = meta['imdb_id']
+            meta = grab.get_episode_meta(name, imdb, season, episode, air_date='', episode_title='', overlay='')
+            if meta['cover_url'] == '':
+                t = grab.get_meta('tvshow', name, '', '', '', overlay=6)
+                meta['cover_url'] = t['banner_url']
+                
+    if type == 'tvshow':
+        meta = grab.get_meta('tvshow', meta_name, '', '', '', overlay=6)
+
+    if type == 'season':
+        r = re.findall(r'\/show\/(.+?)\/season\/(\d+)', meta_name, re.I)
+        for name, season in r:
+            t = grab.get_meta('tvshow', name, '', '', '', overlay=6)
+            imdb = t['imdb_id']
+            r = grab.get_seasons(name, imdb, season)
+            r = str(r).replace("u'", "'")
+            r = re.findall(r'cover_url\':\s\'(.+?)\'.+?backdrop_url\':\s\'(.+?)\'', str(r))
+            for seasons, backdrop in r:
+                meta = {'cover_url': seasons, 'title': name, 'backdrop_url': backdrop, 'TVShowTitle': t['TVShowTitle'], 'year': t['year'],
+                        'plot': t['plot'], 'mpaa': t['mpaa'], 'status': t['status'], 'genre': t['genre'], 'premiered': t['premiered'], 'rating': t['rating'] }
+                
+    return meta
+
+
+class StopDownloading(Exception): 
+    def __init__(self, value):
+        self.value = value 
+        def __str__(self): 
+            return repr(self.value)
 
 def get_params():
         param=[]
@@ -471,190 +587,198 @@ def get_params():
                             param[splitparams[0]]=splitparams[1]
         return param
 
-def VIDEOLINKS(url):
-    print 'VIDEOLINKS URL: '+str(url)
-
-def GRABMETA(name,types,linkback):
-    type = types
-    if type == None: infoLabels = {'cover_url': '','title': name}
-    if type == 'tvshow':
-        if '-' in name:
-            name = re.split('-',name)
-            name = str(name[0]).strip()
-        else:
-            name = name
-        meta = grab.get_meta('tvshow',name,None,None,None,overlay=6)
-
-        infoLabels = {'backdrop_url': meta['backdrop_url'], 'cover_url': meta['cover_url'],
-                      'plot': meta['plot'], 'title': name, 'trailer_url': meta['trailer_url']}
-    if type == 'movie':
-        meta = grab.get_meta('movie',name,None,None,None,overlay=6)
-
-        infoLabels = {'backdrop_url': meta['backdrop_url'], 'cover_url': meta['cover_url'],
-                      'plot': meta['plot'], 'title': name, 'rating': meta['rating'],
-                      'plot': meta['plot'], 'trailer_url': meta['trailer_url'], 'premiered': meta['premiered']}
-    if type == 'season':
-        temp = re.split('season',name,re.I)
-        name = str(temp[0]).strip()
-        season = str(temp[1]).strip()
-        meta = grab.get_seasons(name,'',season)
-        r = re.findall(r"'cover_url': '(.+?)'",str(meta))
-        for thumb in r:
-            infoLabels ={'cover_url': thumb, 'title': name}
-    if type == 'episode':
-        name = name+':'
-        r = re.findall('Season\s(.+?). Episode (.+?):',name)
-        for season, episode in r:
-            meta = grab.get_episode_meta('',linkback,int(season),int(episode),episode_title='', overlay=6)
-            infoLabels = {'rating': meta['rating'],'duration': meta['duration'],'genre': meta['genre'],'mpaa':"rated %s"%meta['mpaa'],
-                          'plot': meta['plot'],'title': meta['title'],'cover_url': meta['cover_url'],'studio': meta['studio'],
-                          'backdrop_url': meta['backdrop_url']}
-    return infoLabels
-
-def addDir(mode,mode2,url,types,linkback,meta_name,name,iconimage,totalItems,video):
+def addDir(mode,url,types,meta_name,name,iconimage,totalItems,imdb,special,queued):
     img = iconimage
-    u=sys.argv[0]+"?mode="+str(mode)+"&mode2="+str(mode2)+"&url="+str(url)+"&types="+str(types)+"&linkback="+str(linkback)+"&meta_name="+str(meta_name)+"&name="+str(meta_name)+"&name="+str(name)+"&iconimage="+str(iconimage)+"&totalItems="+str(totalItems)+"&video="+str(video)
-    if local.getSetting("enable_meta") == "true" :
-        infoLabels = GRABMETA(name,types,linkback)
-        if types == 'movie' and meta_name != 'videolinks' and linkback != None:
-            try:
-                print 'adddir linkback: '+str(linkback)
-                year = re.split(':',linkback)
-                year = year[1]
-                name = str(name)+':[COLOR yellow] Released: '+year+' IMBD Rating: '+str(infoLabels['rating'])+' [/COLOR]'
-            except:
-                pass
+    u   = sys.argv[0]
+    u  += "?mode="          + str(mode)
+    u  += "&url="           + str(url)
+    u  += "&types="         + str(types)
+    u  += "&meta_name="     + str(meta_name)
+    u  += "&name="          + str(name)
+    u  += "&iconimage="     + str(iconimage)
+    u  += "&totalItems="    + str(totalItems)
+    u  += "&imdb="          + str(imdb)
+    u  += "&special="       + str(special)
+    u  += "&queued="        + str(queued)
 
 
-        if types == 'movie' and meta_name != 'videolinks' and linkback == None:
-            year = re.split('-',str(infoLabels['premiered']))
-            year = year[0]
-            name = str(name)+':[COLOR yellow] Released: '+year+' IMBD Rating: '+str(infoLabels['rating'])+' [/COLOR]'
-
-    else:
-        infoLabels = {'cover_url': '', 'title': name}
-    if types == None: img = iconimage
+    if local.getSetting("enable_meta") == "true" and types != None:
+        infoLabels = GRABMETA(meta_name,types)
+    else:infoLabels = {'cover_url': img, 'title': name}
+    if types == None:img = iconimage
     else: img = infoLabels['cover_url']
-    ok = True
-    liz=xbmcgui.ListItem(name, iconImage="DefaultFolder.png", thumbnailImage=img)
-    if types == 'movie':# and types != None: 
-        liz.addContextMenuItems([('Search for trailer', "XBMC.RunPlugin(%s?mode=%s&name=%s&url=%s&linkback=%s&types=%s)"
-                                  %(sys.argv[0],200,infoLabels['title'],url,linkback,types))])
-    try:
-        if types != None: liz.setProperty('fanart_image', infoLabels['backdrop_url'])
-    except:
-        pass
-    liz.setInfo( type="Video", infoLabels=infoLabels)
-    if 'False' in video:
-        ok=xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=u,listitem=liz,isFolder=False,totalItems=int(totalItems))
+    ok  = True
+    liz = xbmcgui.ListItem(name, iconImage = "DefaultFolder.png", thumbnailImage=img)
         
-    else:
-        ok=xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=u,listitem=liz,isFolder=True,totalItems=int(totalItems))
+    ContextMenuItems = []
+    ContextMenuItems.append(('Resolver Settings', 'XBMC.RunPlugin(%s?mode=%s&url=%s)' % (sys.argv[0], 300, url)))
+    ContextMenuItems.append(('Addon Settings', 'XBMC.RunPlugin(%s?mode=%s&url=%s)' % (sys.argv[0], 310, url)))
+    ContextMenuItems.append(('Favorites Settings', 'XBMC.RunPlugin(%s?mode=%s&url=%s)' % (sys.argv[0], 320, url)))
+    ContextMenuItems.append(('MetaHandler Settings', 'XBMC.RunPlugin(%s?mode=%s&url=%s)' % (sys.argv[0], 330, url)))
+    
+    if re.findall('MV', imdb) and types != None:
+        ContextMenuItems.insert(0,('Watch Trailer', 'XBMC.RunPlugin(%s?mode=%s&url=%s)' % (sys.argv[0],60,url)))
+        
+    if types != None:
+        ContextMenuItems.insert(1,('Download', 'XBMC.RunPlugin(%s?mode=%s&url=%s&types=%s&name=%s&imdb=%s)' % (sys.argv[0], 70, url, types, name, imdb)))
+
+        if local.getSetting("enable_meta") == "true":
+            infoL = infoLabels
+            img = infoLabels['cover_url']
+            fanart = infoLabels['backdrop_url']
+            if types == 'episode':types = 'tv shows'
+        else:
+            infoL = ''
+            img = iconimage
+            fanart = ''
+            if types == 'episode':types = 'tv shows'
+        plugin_url = sys.argv[0]+'?mode=20&url='+url+'&name='+name+'&types='+types+'&imdb='+imdb
+        ContextMenuItems.insert(2,('Add to Favorites', fav.add_directory(name, plugin_url, section_title=types.title(), infolabels=infoL,
+                                                                         img=img, fanart=fanart)))
+
+
+    
+    liz.addContextMenuItems((ContextMenuItems), replaceItems=True)
+    #if types == None:
+    #liz.addContextMenuItems(ContextMenuItems)
+
+
+    try: liz.setProperty('fanart_image', infoLabels['backdrop_url'])
+    except: pass
+
+    liz.setInfo( type="Video", infoLabels=infoLabels)
+    if special == True: ok=xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=u,listitem=liz,isFolder=False,totalItems=int(totalItems))
+    else: ok=xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=u,listitem=liz,isFolder=True,totalItems=int(totalItems))
     return ok
 
-def addSpecial(name,url,mode,image):
-    liz=xbmcgui.ListItem(label = '[B]%s[/B]'%name,iconImage="",thumbnailImage = image)
-    liz.setProperty('fanart_image', os.path.join(art,'xbmcback.png'))
-    xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=sys.argv[0]+"?url=%s&mode=%s&name=%s"%(url,mode,name),isFolder=False,listitem=liz)
+params      = get_params()
+mode        = None
+url         = None
+types       = None
+meta_name   = None
+name        = None
+iconimage   = None
+totalItems  = None
+imdb        = None
+special     = None
+queued      = None
 
 
-params=get_params()
-mode=None
-mode2=None
-url=None
-types=None
-linkback=None
-meta_name=None
-name=None
-totalItems=None
-video=None
-try:
-        iconimage=urllib.unquote_plus(params["iconimage"])
-except:
-        pass
-try:
-        meta_name=urllib.unquote_plus(params["meta_name"])
-except:
-        pass
+try:    mode        = int(params["mode"])
+except: pass
+try:    url         = urllib.unquote_plus(params["url"])
+except: pass
+try:    types       = urllib.unquote_plus(params["types"])
+except: pass
+try:    meta_name   = urllib.unquote_plus(params["meta_name"])
+except: pass
+try:    name        = urllib.unquote_plus(params["name"])
+except: pass
+try:    iconimage   = urllib.unquote_plus(params["iconimage"])
+except: pass
+try:    totalItems  = int(params["totalItems"])
+except: pass
+try:    imdb        = urllib.unquote_plus(params["imdb"])
+except: pass
+try:    special     = urllib.unquote_plus(params["special"])
+except: pass
+try:    queued      = params["queued"]
+except: pass
 
-try:
-        linkback=urllib.unquote_plus(params["linkback"])
-except:
-        pass
-try:
-        types=urllib.unquote_plus(params["types"])
-except:
-        pass
-try:
-        url=urllib.unquote_plus(params["url"])
-except:
-        pass
-try:
-        name=urllib.unquote_plus(params["name"])
-except:
-        pass
-try:
-        mode=int(params["mode"])
-except:
-        pass
-try:
-        mode2=urllib.unquote_plus(params["mode2"])
-except:
-        pass
-try:
-        totalItems=int(params["totalItems"])
-except:
-        pass
-print '----------------------------------------------------'
-print 'Mode: '+str(mode)
-print 'Mode2: '+str(mode2)
-print 'URL: '+str(url)
-print 'TYPEs: '+str(types)
-print 'Linkback: '+str(linkback)
-print 'Meta_Name: '+str(meta_name)
-print 'Name: '+str(name)
-print 'TotalItems: '+str(totalItems)
-print '----------------------------------------------------'
+xbmc.log('======================================================')
+xbmc.log('Mode: '.title() +str(mode))
+xbmc.log('Url: '.title() +str(url))
+xbmc.log('meta_name: '.title() +str(meta_name))
+xbmc.log('name: '.title() +str(name))
+xbmc.log('iconimage: '.title() +str(iconimage))
+xbmc.log('totalItems: '.title() +str(totalItems))
+xbmc.log('imdb: '.title() +str(imdb))
+xbmc.log('special: '.title() +str(special))
+xbmc.log('queued: '.title() +str(queued))
+xbmc.log('======================================================')
 
 if mode==None or url==None or len(url)<1:
     MAIN()
+    setView('default', 'default')
 
 elif mode == 10:
-    urlresolver.display_settings()
+    TvEpisodes(url, imdb)
+    setView('episodes', 'episode')
+
+elif mode == 11:
+    if imdb == 'TVR':
+        content = 'tvshows'
+        viewtype = 'tvshow'
+    elif imdb == 'MVR':
+        content = 'movies'
+        viewtype = 'movie'
+    Random(url, imdb)
+    setView(content, viewtype)
+    
+
+elif mode == 13:
+    TvSeason(url, meta_name, imdb)
+    setView('tvshows', 'season')
+    
+elif mode == 14:
+    if imdb == 'TVG':
+        content = 'tvshows'
+        viewtype = 'tvshow'
+    elif imdb == 'MVG':
+        content = 'movies'
+        viewtype = 'movie'
+    Genre(url, imdb)
+    setView(content, viewtype)
+
+elif mode == 15:
+    if imdb == 'TVA':
+        content = 'tvshows'
+        viewtype = 'tvshow'
+    if imdb == 'MVZ':
+        content = 'movies'
+        viewtype = 'movie'
+    AtoZ(url, imdb)
+    setView(content, viewtype)
+
 elif mode == 20:
-    HELP()
+    ListHosts(url, name, imdb)
+
 elif mode == 30:
-    TV_SECTION(url)
-elif mode == 31:
-    TV_GENRES(url)
-elif mode == 32:
-    FEATURED_SHOWS(url)
-elif mode == 33:
-    RANDOM_SHOWS(url)
-elif mode == 34:
-    NEWEST_EPISODES(url)
+    MoviesLatest(url, imdb)
+    setView('movies', 'movie')
+
 elif mode == 40:
-    MOVIE_SECTION(url)
-elif mode == 41:
-    MOVIES_GENRES(url)
-elif mode == 42:
-    RANDOM_MOVIES(url)
-elif mode == 43:
-    LATEST_MOVIES_ADDED(url)
-elif mode == 50:
-    INDEX(url,name,types)
+    MusicIndex(url, imdb)
+
 elif mode == 60:
-    SEARCHMENU()
-elif mode == 90:
-    SEARCHBYWORD()
-elif mode == 91:
-    SEARCHBYYEAR()
-elif mode == 92:
-    SEARCHBYDIRECTOR()
+    WatchTrailer(url)
+
+elif mode == 70:
+    Download(url, types, name, imdb)
+
+
 elif mode == 100:
-    VIDEOLINKS(url)
+    PlaySource(url, types, meta_name, imdb, iconimage, queued)
+
 elif mode == 200:
-    TRAILERSEARCH(url, name, meta_name)
+    Search(url, imdb)
+
+elif mode == 300:
+    urlresolver.display_settings()
+
+elif mode == 310:
+    addon.show_settings()
+
+elif mode == 320:
+    from universal import _common
+    _common.addon.show_settings()
+
+elif mode == 330:
+    import metahandler
+    metahandler.display_settings()
     
-    
+
+
+
+
 xbmcplugin.endOfDirectory(int(sys.argv[1]),succeeded=True)
