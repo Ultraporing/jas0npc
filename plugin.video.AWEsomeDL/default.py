@@ -255,7 +255,7 @@ def setView(content, viewType):
         # set content type so library shows more views and info
         if content:
                 xbmcplugin.setContent(int(sys.argv[1]), content)
-        if local.getSetting('auto-view') == 'true':#<<<----see here if auto-view is enabled(true) 
+        if local.getSetting('auto-view') == "true":#<<<----see here if auto-view is enabled(true) 
                 xbmc.executebuiltin("Container.SetViewMode(%s)" % local.getSetting(viewType) )#<<<-----then get the view type
 
 def get_params():
